@@ -132,6 +132,9 @@ def run_detail_report():
         task = map_task(item['description'])
         duration = item['dur']
 
+        if client is None or project is None or task is None:
+            continue
+
         key = (start_date, client, project, task)
 
         summary[key] = summary.get(key, 0) + duration

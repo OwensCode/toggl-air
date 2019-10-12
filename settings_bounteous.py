@@ -4,7 +4,7 @@ ROUND_TO_MINUTES = 5
 
 CLIENT_MAP = {
     'RN-.*' : 'RN',
-    'HS2-Firm Administration' : 'Bounteous'
+    'HS2-.*' : 'Bounteous'
 }
 
 PROJECT_MAP = {
