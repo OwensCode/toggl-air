@@ -2,6 +2,7 @@
 
 import os
 import re
+import argparse
 
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
@@ -11,13 +12,18 @@ import requests
 from dotenv import load_dotenv
 from texttable import Texttable
 
+from config import Config
 from duration_rounder import DurationRounder
 from errors import RequestError
-from settings_rn import CLIENT_MAP, PROJECT_MAP, TASK_MAP, ROUND_TO_MINUTES
 
 REPORT_DETAIL_URL = 'https://toggl.com/reports/api/v2/details'
 
 EMPTY_TABLE_ROW = [''] * 4 + ['--------', '--------', '-----']
+
+def run_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config', help='configuration file in JSON format')
+    return parser.parse_args()
 
 def get_auth():
     return (os.environ['TOGGL_API_TOKEN'], 'api_token')
@@ -38,22 +44,13 @@ def map_item(item, lookup_map):
 
     return item
 
-def map_client(client):
-    return map_item(client, CLIENT_MAP)
-
-def map_project(project):
-    return map_item(project, PROJECT_MAP)
-
-def map_task(task):
-    return map_item(task, TASK_MAP)
-
-def report_summary(summary):
+def report_summary(summary, round_to_minutes):
     table = Texttable(max_width=0)
     table.set_deco(Texttable.HEADER | Texttable.BORDER | Texttable.VLINES)
     table.set_precision(2)
     table.header(['Date', 'Client', 'Project', 'Task', 'Duration', 'Rounded', 'Hours'])
 
-    duration_rounder = DurationRounder(ROUND_TO_MINUTES)
+    duration_rounder = DurationRounder(round_to_minutes)
 
     previous_day = ''
     daily_duration = total_duration = timedelta(0)
@@ -117,7 +114,7 @@ def duration_to_str(duration):
     minutes, seconds = divmod(remainder, 60)
     return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 
-def run_detail_report():
+def run_detail_report(config):
     response = requests.get(REPORT_DETAIL_URL, params=get_request_params(), auth=get_auth())
 
     if not response.ok:
@@ -127,9 +124,9 @@ def run_detail_report():
 
     for item in response.json()['data']:
         start_date = item['start'][:10]
-        client = map_client(item['client'])
-        project = map_project(item['project'])
-        task = map_task(item['description'])
+        client = map_item(item['client'], config.client_map())
+        project = map_item(item['project'], config.project_map())
+        task = map_item(item['description'], config.task_map())
         duration = item['dur']
 
         if client is None or project is None or task is None:
@@ -139,8 +136,13 @@ def run_detail_report():
 
         summary[key] = summary.get(key, 0) + duration
 
-    print(report_summary(summary))
+    print(report_summary(summary, config.round_to_minutes()))
+
+def main():
+    load_dotenv(verbose=False)
+    args = run_args()
+    config = Config(args.config)
+    run_detail_report(config)
 
 if __name__ == '__main__':
-    load_dotenv(verbose=False)
-    run_detail_report()
+    main()

@@ -1,0 +1,15 @@
+{
+  "round_to_minutes" : 5,
+  "client_map" : {
+    "RN-.*" : "RN",
+    "HS2-.*" : "Bounteous"
+  },
+  "project_map" : {
+    "Administration" : "Administration",
+    "Holiday" : "Holiday",
+    "Mentoring" : "Mentoring",
+    ".*" : ""
+  },
+  "task_map" : {
+  }
+}
