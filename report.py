@@ -8,6 +8,7 @@ from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 import requests
+import pandas as pd
 
 from dotenv import load_dotenv
 from texttable import Texttable
@@ -114,27 +115,48 @@ def duration_to_str(duration):
     minutes, seconds = divmod(remainder, 60)
     return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 
+def create_datarow(item, config):
+    row = [
+        item['start'][:10],
+        map_item(item['client'], config.client_map()),
+        map_item(item['project'], config.project_map()),
+        map_item(item['description'], config.task_map()),
+        item['dur']
+    ]
+    # row.append(tuple(row[0:4]))
+    return row
+
+def create_dataframe(data, config):
+    rows = [ create_datarow(item, config) for item in data ]
+    df = pd.DataFrame(rows, columns=['date', 'client', 'project', 'task', 'duration'])
+    df = df.groupby(['date', 'client', 'project', 'task']).sum()
+    df = df.sort_values(by=['date', 'client', 'project', 'task'])
+    print(df)
+    return df
+
 def run_detail_report(config):
     response = requests.get(REPORT_DETAIL_URL, params=get_request_params(), auth=get_auth())
 
     if not response.ok:
         raise RequestError.create(response)
 
-    summary = {}
+    summary = create_dataframe(response.json()['data'], config)
 
-    for item in response.json()['data']:
-        start_date = item['start'][:10]
-        client = map_item(item['client'], config.client_map())
-        project = map_item(item['project'], config.project_map())
-        task = map_item(item['description'], config.task_map())
-        duration = item['dur']
+    # summary = {}
 
-        if client is None or project is None or task is None:
-            continue
+    # for item in response.json()['data']:
+    #     start_date = item['start'][:10]
+    #     client = map_item(item['client'], config.client_map())
+    #     project = map_item(item['project'], config.project_map())
+    #     task = map_item(item['description'], config.task_map())
+    #     duration = item['dur']
 
-        key = (start_date, client, project, task)
+    #     if client is None or project is None or task is None:
+    #         continue
 
-        summary[key] = summary.get(key, 0) + duration
+    #     key = (start_date, client, project, task)
+
+    #     summary[key] = summary.get(key, 0) + duration
 
     print(report_summary(summary, config.round_to_minutes()))
 

@@ -10,6 +10,7 @@ pylint = "*"
 requests = "*"
 python-dotenv = "*"
 texttable = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.7"
