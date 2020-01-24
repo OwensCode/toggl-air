@@ -45,6 +45,10 @@ def map_item(item, lookup_map):
 
     return item
 
+def calc_rounded_hours(rounded_duration):
+    hours = Decimal.from_float(rounded_duration.total_seconds()) / 60 / 60
+    return hours.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+
 def report_summary(summary, round_to_minutes):
     table = Texttable(max_width=0)
     table.set_deco(Texttable.HEADER | Texttable.BORDER | Texttable.VLINES)
@@ -121,18 +125,30 @@ def create_datarow(item, config):
         map_item(item['client'], config.client_map()),
         map_item(item['project'], config.project_map()),
         map_item(item['description'], config.task_map()),
-        item['dur']
+        timedelta(milliseconds=item['dur'])
     ]
-    # row.append(tuple(row[0:4]))
     return row
 
 def create_dataframe(data, config):
-    rows = [ create_datarow(item, config) for item in data ]
-    df = pd.DataFrame(rows, columns=['date', 'client', 'project', 'task', 'duration'])
-    df = df.groupby(['date', 'client', 'project', 'task']).sum()
-    df = df.sort_values(by=['date', 'client', 'project', 'task'])
-    print(df)
-    return df
+    rows = [create_datarow(item, config) for item in data]
+    dataframe = pd.DataFrame(rows, columns=['date', 'client', 'project', 'task', 'duration'])
+    dataframe = dataframe.groupby(['date', 'client', 'project', 'task']).sum()
+    dataframe = dataframe.sort_values(by=['date', 'client', 'project', 'task'])
+
+    duration_rounder = DurationRounder(config.round_to_minutes())
+
+    dataframe['rounded_duration'] = dataframe['duration'].apply(duration_rounder.round)
+    dataframe['rounded_hours'] = dataframe['rounded_duration'].apply(calc_rounded_hours)
+
+    daily_totals = dataframe.groupby('date').sum()
+    daily_totals.insert(0, 'client', None)
+    daily_totals.insert(1, 'project', None)
+    daily_totals.insert(2, 'task', None)
+    print(daily_totals)
+
+    print(dataframe.append(daily_totals, ignore_index=True, sort=False))
+
+    return dataframe
 
 def run_detail_report(config):
     response = requests.get(REPORT_DETAIL_URL, params=get_request_params(), auth=get_auth())
@@ -140,23 +156,23 @@ def run_detail_report(config):
     if not response.ok:
         raise RequestError.create(response)
 
-    summary = create_dataframe(response.json()['data'], config)
+    create_dataframe(response.json()['data'], config)
 
-    # summary = {}
+    summary = {}
 
-    # for item in response.json()['data']:
-    #     start_date = item['start'][:10]
-    #     client = map_item(item['client'], config.client_map())
-    #     project = map_item(item['project'], config.project_map())
-    #     task = map_item(item['description'], config.task_map())
-    #     duration = item['dur']
+    for item in response.json()['data']:
+        start_date = item['start'][:10]
+        client = map_item(item['client'], config.client_map())
+        project = map_item(item['project'], config.project_map())
+        task = map_item(item['description'], config.task_map())
+        duration = item['dur']
 
-    #     if client is None or project is None or task is None:
-    #         continue
+        if client is None or project is None or task is None:
+            continue
 
-    #     key = (start_date, client, project, task)
+        key = (start_date, client, project, task)
 
-    #     summary[key] = summary.get(key, 0) + duration
+        summary[key] = summary.get(key, 0) + duration
 
     print(report_summary(summary, config.round_to_minutes()))
 
