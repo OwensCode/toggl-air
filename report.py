@@ -9,6 +9,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 import requests
 import pandas as pd
+import numpy as np
 
 from dotenv import load_dotenv
 from texttable import Texttable
@@ -140,13 +141,16 @@ def create_dataframe(data, config):
     dataframe['rounded_duration'] = dataframe['duration'].apply(duration_rounder.round)
     dataframe['rounded_hours'] = dataframe['rounded_duration'].apply(calc_rounded_hours)
 
+    print(str(dataframe.dtypes))
+    print(dataframe)
+
     daily_totals = dataframe.groupby('date').sum()
-    daily_totals.insert(0, 'client', None)
-    daily_totals.insert(1, 'project', None)
-    daily_totals.insert(2, 'task', None)
+    daily_totals.insert(0, 'client', np.nan)
+    daily_totals.insert(1, 'project', np.nan)
+    daily_totals.insert(2, 'task', np.nan)
     print(daily_totals)
 
-    print(dataframe.append(daily_totals, ignore_index=True, sort=False))
+    print(pd.concat([dataframe, daily_totals]))
 
     return dataframe
 
