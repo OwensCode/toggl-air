@@ -2,12 +2,15 @@
   "round_to_minutes" : 5,
   "client_map" : {
     "RN-.*" : "RN",
-    "HS2-.*" : "Bounteous"
+    "SS-.*" : "SS",
+    "HS2-.*" : "Bounteous",
+    "B8-.*" : "Bounteous"
   },
   "project_map" : {
     "Administration" : "Administration",
     "Holiday" : "Holiday",
     "Mentoring" : "Mentoring",
+    "Competency Development" : "Competency Development",
     ".*" : ""
   },
   "task_map" : {

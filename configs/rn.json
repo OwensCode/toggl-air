@@ -1,7 +1,9 @@
 {
   "round_to_minutes" : 15,
   "client_map" : {
-    "HS2-.*" : null
+    "HS2-.*" : null,
+    "B8-.*" : null,
+    "SS.*" : null
   },
   "project_map" : {
   },
