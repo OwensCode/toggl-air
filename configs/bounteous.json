@@ -11,6 +11,7 @@
     "Holiday" : "Holiday",
     "Mentoring" : "Mentoring",
     "Competency Development" : "Competency Development",
+    "Vacation" : "Leave/Absence",
     ".*" : ""
   },
   "task_map" : {
