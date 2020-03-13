@@ -133,23 +133,41 @@ def create_datarow(item, config):
 def create_dataframe(data, config):
     rows = [create_datarow(item, config) for item in data]
     dataframe = pd.DataFrame(rows, columns=['date', 'client', 'project', 'task', 'duration'])
-    dataframe = dataframe.groupby(['date', 'client', 'project', 'task']).sum()
+
+    print('============================================================================')
+    print(dataframe.dtypes)
+    print(dataframe)
+
+    dataframe = dataframe.groupby(['date', 'client', 'project', 'task'], as_index=False).sum()
     dataframe = dataframe.sort_values(by=['date', 'client', 'project', 'task'])
+
+    print("\n")
+    print('======= Grouped and sorted =================================================')
+    print(dataframe.dtypes)
+    print(dataframe)
 
     duration_rounder = DurationRounder(config.round_to_minutes())
 
     dataframe['rounded_duration'] = dataframe['duration'].apply(duration_rounder.round)
     dataframe['rounded_hours'] = dataframe['rounded_duration'].apply(calc_rounded_hours)
 
-    print(str(dataframe.dtypes))
+    print("\n")
+    print('======= With rounded hours =================================================')
+    print(dataframe.dtypes)
     print(dataframe)
 
-    daily_totals = dataframe.groupby('date').sum()
-    daily_totals.insert(0, 'client', np.nan)
-    daily_totals.insert(1, 'project', np.nan)
-    daily_totals.insert(2, 'task', np.nan)
+    daily_totals = dataframe.groupby('date', as_index=False).sum()
+    # daily_totals.insert(0, 'client', np.nan)
+    # daily_totals.insert(1, 'project', np.nan)
+    # daily_totals.insert(2, 'task', np.nan)
+
+    print("\n")
+    print('======= Daily totals========================================================')
+    print(daily_totals.dtypes)
     print(daily_totals)
 
+    print("\n")
+    print('======= Concat =============================================================')
     print(pd.concat([dataframe, daily_totals]))
 
     return dataframe
