@@ -3,6 +3,7 @@
 import os
 import re
 import argparse
+import json
 
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
@@ -131,46 +132,38 @@ def create_datarow(item, config):
     return row
 
 def create_dataframe(data, config):
-    rows = [create_datarow(item, config) for item in data]
-    dataframe = pd.DataFrame(rows, columns=['date', 'client', 'project', 'task', 'duration'])
+    json_data = json.dumps(data)
+    dataframe = pd.read_json(json_data, convert_dates=['start', 'end', 'updated'])
 
-    print('============================================================================')
-    print(dataframe.dtypes)
-    print(dataframe)
+    dataframe['start_local'] = dataframe['start'].dt.tz_localize(None)
+    dataframe['date'] = dataframe['start_local'].dt.to_period('D')
+    dataframe['duration'] = dataframe['dur'].apply(lambda x: timedelta(milliseconds=x))
+
+    dataframe = dataframe[['date', 'client', 'project', 'description', 'duration']]
+    dataframe = dataframe.rename(columns={'description': 'task'})
 
     dataframe = dataframe.groupby(['date', 'client', 'project', 'task'], as_index=False).sum()
     dataframe = dataframe.sort_values(by=['date', 'client', 'project', 'task'])
-
-    print("\n")
-    print('======= Grouped and sorted =================================================')
-    print(dataframe.dtypes)
-    print(dataframe)
 
     duration_rounder = DurationRounder(config.round_to_minutes())
 
     dataframe['rounded_duration'] = dataframe['duration'].apply(duration_rounder.round)
     dataframe['rounded_hours'] = dataframe['rounded_duration'].apply(calc_rounded_hours)
 
-    print("\n")
-    print('======= With rounded hours =================================================')
-    print(dataframe.dtypes)
-    print(dataframe)
-
     daily_totals = dataframe.groupby('date', as_index=False).sum()
-    # daily_totals.insert(0, 'client', np.nan)
-    # daily_totals.insert(1, 'project', np.nan)
-    # daily_totals.insert(2, 'task', np.nan)
+    daily_totals['client'] = np.nan
+    daily_totals['project'] = np.nan
+    daily_totals['task'] = np.nan
 
-    print("\n")
-    print('======= Daily totals========================================================')
-    print(daily_totals.dtypes)
-    print(daily_totals)
+    combined_df = pd.concat([dataframe, daily_totals])
+    combined_df = combined_df.sort_values(by=['date', 'client', 'project', 'task'], na_position='last')
+    combined_df['client'] = combined_df['client'].fillna('')
+    combined_df['project'] = combined_df['project'].fillna('')
+    combined_df['task'] = combined_df['task'].fillna('')
 
-    print("\n")
-    print('======= Concat =============================================================')
-    print(pd.concat([dataframe, daily_totals]))
+    print(combined_df)
 
-    return dataframe
+    return combined_df
 
 def run_detail_report(config):
     response = requests.get(REPORT_DETAIL_URL, params=get_request_params(), auth=get_auth())
