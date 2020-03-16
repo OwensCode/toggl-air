@@ -3,21 +3,21 @@
 import os
 import re
 import argparse
-import json
 
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 import requests
-import pandas as pd
-import numpy as np
 
 from dotenv import load_dotenv
 from texttable import Texttable
 
+import dataframe as df
+
 from config import Config
 from duration_rounder import DurationRounder
 from errors import RequestError
+from calc import calc_rounded_hours
 
 REPORT_DETAIL_URL = 'https://toggl.com/reports/api/v2/details'
 
@@ -46,10 +46,6 @@ def map_item(item, lookup_map):
             return value
 
     return item
-
-def calc_rounded_hours(rounded_duration):
-    hours = Decimal.from_float(rounded_duration.total_seconds()) / 60 / 60
-    return hours.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
 
 def report_summary(summary, round_to_minutes):
     table = Texttable(max_width=0)
@@ -132,36 +128,14 @@ def create_datarow(item, config):
     return row
 
 def create_dataframe(data, config):
-    json_data = json.dumps(data)
-    dataframe = pd.read_json(json_data, convert_dates=['start', 'end', 'updated'])
+    dataframe = df.create_dataframe(data, config)
+    daily_totals = df.calculate_daily_totals(dataframe)
+    combined_df = df.combine_with_daily_totals(dataframe, daily_totals)
 
-    dataframe['start_local'] = dataframe['start'].dt.tz_localize(None)
-    dataframe['date'] = dataframe['start_local'].dt.to_period('D')
-    dataframe['duration'] = dataframe['dur'].apply(lambda x: timedelta(milliseconds=x))
-
-    dataframe = dataframe[['date', 'client', 'project', 'description', 'duration']]
-    dataframe = dataframe.rename(columns={'description': 'task'})
-
-    dataframe = dataframe.groupby(['date', 'client', 'project', 'task'], as_index=False).sum()
-    dataframe = dataframe.sort_values(by=['date', 'client', 'project', 'task'])
-
-    duration_rounder = DurationRounder(config.round_to_minutes())
-
-    dataframe['rounded_duration'] = dataframe['duration'].apply(duration_rounder.round)
-    dataframe['rounded_hours'] = dataframe['rounded_duration'].apply(calc_rounded_hours)
-
-    daily_totals = dataframe.groupby('date', as_index=False).sum()
-    daily_totals['client'] = np.nan
-    daily_totals['project'] = np.nan
-    daily_totals['task'] = np.nan
-
-    combined_df = pd.concat([dataframe, daily_totals])
-    combined_df = combined_df.sort_values(by=['date', 'client', 'project', 'task'], na_position='last')
-    combined_df['client'] = combined_df['client'].fillna('')
-    combined_df['project'] = combined_df['project'].fillna('')
-    combined_df['task'] = combined_df['task'].fillna('')
-
+    print(daily_totals[['date', 'duration', 'rounded_duration', 'rounded_hours']])
+    print()
     print(combined_df)
+    print()
 
     return combined_df
 
