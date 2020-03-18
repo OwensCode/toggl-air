@@ -1,11 +1,11 @@
 # pylint: disable=missing-docstring
 
+import re
 import json
 
 from datetime import timedelta
 
 import pandas as pd
-import numpy as np
 
 from duration_rounder import DurationRounder
 from calc import calc_rounded_hours
@@ -24,22 +24,39 @@ def create_dataframe(data, config):
     dataframe = dataframe.groupby(['date', 'client', 'project', 'task'], as_index=False).sum()
     dataframe = dataframe.sort_values(by=['date', 'client', 'project', 'task'])
 
-    duration_rounder = DurationRounder(config.round_to_minutes())
-
-    dataframe['rounded_duration'] = dataframe['duration'].apply(duration_rounder.round)
-    dataframe['rounded_hours'] = dataframe['rounded_duration'].apply(calc_rounded_hours)
+    __map_descriptive_cols(dataframe, config)
+    __perform_rounding(dataframe, config)
 
     return dataframe
 
-def map_client(dataframe, client_map):
-    pass
+def __map_descriptive_cols(dataframe, config):
+    dataframe['client'] = dataframe['client'].apply(lambda x: __map_item(x, config.client_map()))
+    dataframe['project'] = dataframe['project'].apply(lambda x: __map_item(x, config.project_map()))
+    dataframe['task'] = dataframe['task'].apply(lambda x: __map_item(x, config.task_map()))
+    return dataframe
+
+def __perform_rounding(dataframe, config):
+    duration_rounder = DurationRounder(config.round_to_minutes())
+    dataframe['rounded_duration'] = dataframe['duration'].apply(duration_rounder.round)
+    dataframe['rounded_hours'] = dataframe['rounded_duration'].apply(calc_rounded_hours)
+    return dataframe
+
+def __map_item(item, lookup_map):
+    if lookup_map.get(item):
+        return lookup_map[item]
+
+    for key, value in lookup_map.items():
+        if re.fullmatch(key, item):
+            return value
+
+    return item
 
 def calculate_daily_totals(dataframe):
     daily_totals = dataframe.groupby('date', as_index=False).sum()
-    daily_totals['client'] = np.nan
-    daily_totals['project'] = np.nan
-    daily_totals['task'] = np.nan
-    return daily_totals
+    return daily_totals[['date', 'duration', 'rounded_duration', 'rounded_hours']]
+
+def calculate_totals(dataframe):
+    return dataframe[['duration', 'rounded_duration', 'rounded_hours']].sum()
 
 def combine_with_daily_totals(dataframe, daily_totals):
     combined_df = pd.concat([dataframe, daily_totals])

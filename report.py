@@ -130,14 +130,17 @@ def create_datarow(item, config):
 def create_dataframe(data, config):
     dataframe = df.create_dataframe(data, config)
     daily_totals = df.calculate_daily_totals(dataframe)
-    combined_df = df.combine_with_daily_totals(dataframe, daily_totals)
+    totals = df.calculate_totals(dataframe)
 
-    print(daily_totals[['date', 'duration', 'rounded_duration', 'rounded_hours']])
     print()
-    print(combined_df)
+    print(dataframe)
+    print()
+    print(daily_totals)
+    print()
+    print(totals)
     print()
 
-    return combined_df
+    return dataframe
 
 def run_detail_report(config):
     response = requests.get(REPORT_DETAIL_URL, params=get_request_params(), auth=get_auth())
