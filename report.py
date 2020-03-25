@@ -17,7 +17,6 @@ import dataframe as df
 from config import Config
 from duration_rounder import DurationRounder
 from errors import RequestError
-from calc import calc_rounded_hours
 
 REPORT_DETAIL_URL = 'https://toggl.com/reports/api/v2/details'
 
@@ -127,20 +126,33 @@ def create_datarow(item, config):
     ]
     return row
 
-def create_dataframe(data, config):
-    dataframe = df.create_dataframe(data, config)
-    daily_totals = df.calculate_daily_totals(dataframe)
-    totals = df.calculate_totals(dataframe)
+def create_report(dataframe):
+    table = Texttable(max_width=0)
+    table.set_deco(Texttable.HEADER | Texttable.BORDER | Texttable.VLINES)
+    table.set_precision(2)
+    table.header(['Date', 'Client', 'Project', 'Task', 'Duration', 'Rounded', 'Hours'])
 
-    print()
-    print(dataframe)
-    print()
-    print(daily_totals)
-    print()
-    print(totals)
-    print()
+    report = dataframe.copy(deep=True)
+    report['duration'] = report['duration'].apply(duration_to_str)
+    report['rounded_duration'] = report['rounded_duration'].apply(duration_to_str)
 
-    return dataframe
+    table.add_rows(report.values.tolist(), header=False)
+
+    return table.draw()
+
+def create_daily_totals_report(daily_totals):
+    table = Texttable(max_width=0)
+    table.set_deco(Texttable.HEADER | Texttable.BORDER | Texttable.VLINES)
+    table.set_precision(2)
+    table.header(['Date', 'Duration', 'Rounded', 'Hours'])
+
+    report = daily_totals.copy(deep=True)
+    report['duration'] = report['duration'].apply(duration_to_str)
+    report['rounded_duration'] = report['rounded_duration'].apply(duration_to_str)
+
+    table.add_rows(report.values.tolist(), header=False)
+
+    return table.draw()
 
 def run_detail_report(config):
     response = requests.get(REPORT_DETAIL_URL, params=get_request_params(), auth=get_auth())
@@ -148,7 +160,12 @@ def run_detail_report(config):
     if not response.ok:
         raise RequestError.create(response)
 
-    create_dataframe(response.json()['data'], config)
+    dataframe = df.create_dataframe(response.json()['data'], config)
+    print(create_report(dataframe))
+
+    print(create_daily_totals_report(df.calculate_daily_totals(dataframe)))
+    totals = df.calculate_totals(dataframe)
+    print(totals)
 
     summary = {}
 
