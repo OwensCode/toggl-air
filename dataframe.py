@@ -32,21 +32,6 @@ def create_dataframe(data, config):
 
     return dataframe
 
-def create_weekly_report(data, config):
-    dataframe = create_dataframe(data, config)
-    daily_totals = calculate_daily_totals(dataframe)
-    totals = calculate_totals(dataframe)
-    print(type(totals.array))
-
-    combined_df = pd.concat([dataframe, daily_totals, totals])
-    combined_df = combined_df.sort_values(by=['date', 'client', 'project', 'task'], na_position='last')
-    __fill_na(combined_df, 'client')
-    __fill_na(combined_df, 'project')
-    __fill_na(combined_df, 'task')
-
-    return combined_df
-
-
 def __map_descriptive_cols(dataframe, config):
     dataframe['client'] = dataframe['client'].apply(lambda x: __map_item(x, config.client_map()))
     dataframe['project'] = dataframe['project'].apply(lambda x: __map_item(x, config.project_map()))
@@ -82,8 +67,12 @@ def __fill_na(dataframe, column_name):
 
 def combine_with_daily_totals(dataframe, daily_totals):
     combined_df = pd.concat([dataframe, daily_totals])
-    combined_df = combined_df.sort_values(by=['date', 'client', 'project', 'task'], na_position='last')
+    combined_df = combined_df.sort_values(
+        by=['date', 'client', 'project', 'task'],
+        na_position='last')
+
     __fill_na(combined_df, 'client')
     __fill_na(combined_df, 'project')
     __fill_na(combined_df, 'task')
+
     return combined_df
