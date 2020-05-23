@@ -3,6 +3,8 @@
 import os
 import argparse
 
+from datetime import date, timedelta
+
 import requests
 
 from dotenv import load_dotenv
@@ -17,18 +19,47 @@ REPORT_DETAIL_URL = 'https://toggl.com/reports/api/v2/details'
 
 EMPTY_TABLE_ROW = [''] * 4 + ['--------', '--------', '-----']
 
+ONE_DAY = timedelta(days=1)
+
+def valid_date(date_str):
+    try:
+        return date.fromisoformat(date_str)
+    except ValueError:
+        msg = f'Not a valid date: "{date_str}". Must be in format yyyy-mm-dd.'
+        raise argparse.ArgumentTypeError(msg)
+
+def previous_monday(end_date):
+    prev_date = end_date - ONE_DAY
+    while prev_date.isoweekday() != 1:
+        prev_date = prev_date - ONE_DAY
+    return prev_date
+
 def run_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--start', help='start date, default is most recent Monday', type=valid_date)
+    parser.add_argument('-e', '--end', help='end date, default is today', type=valid_date)
     parser.add_argument('config', help='configuration file in JSON format')
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.end is None:
+        args.end = date.today()
+
+    if args.start is None:
+        args.start = previous_monday(args.end)
+
+    assert args.start <= args.end, 'End date cannot be before start date'
+
+    return args
 
 def get_auth():
     return (os.environ['TOGGL_API_TOKEN'], 'api_token')
 
-def get_request_params():
+def get_request_params(start_date, end_date):
     return {
         'user_agent': os.environ['TOGGL_USER_AGENT'],
-        'workspace_id': os.environ['TOGGL_WORKSPACE_ID']
+        'workspace_id': os.environ['TOGGL_WORKSPACE_ID'],
+        'since': start_date,
+        'until': end_date
     }
 
 def duration_to_str(duration):
@@ -60,23 +91,30 @@ def create_report(dataframe, totals):
 
     return table.draw()
 
-def run_detail_report(config):
-    response = requests.get(REPORT_DETAIL_URL, params=get_request_params(), auth=get_auth())
+def run_detail_report(config, report_date):
+    request_params = get_request_params(report_date, report_date)
+    response = requests.get(REPORT_DETAIL_URL, params=request_params, auth=get_auth())
 
     if not response.ok:
         raise RequestError.create(response)
 
-    dataframe = df.create_dataframe(response.json()['data'], config)
-    daily_totals = df.calculate_daily_totals(dataframe)
-    totals = df.calculate_totals(dataframe)
-    dataframe = df.combine_with_daily_totals(dataframe, daily_totals)
-    print(create_report(dataframe, totals))
+    data = response.json()['data']
+    if len(data):
+        dataframe = df.create_dataframe(data, config)
+        daily_totals = df.calculate_daily_totals(dataframe)
+        totals = df.calculate_totals(dataframe)
+        dataframe = df.combine_with_daily_totals(dataframe, daily_totals)
+        print(create_report(dataframe, totals))
 
 def main():
     load_dotenv(verbose=False)
     args = run_args()
     config = Config(args.config)
-    run_detail_report(config)
+
+    report_date = args.start
+    while report_date <= args.end:
+        run_detail_report(config, report_date)
+        report_date = report_date + ONE_DAY
 
 if __name__ == '__main__':
     main()

@@ -12,8 +12,7 @@
     "Mentoring" : "Mentoring",
     "Competency Development" : "Competency Development",
     "Training" : "Training",
-    "Vacation" : "Leave/Absence",
-    ".*" : ""
+    "Vacation" : "Leave/Absence"
   },
   "task_map" : {
   }
