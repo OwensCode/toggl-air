@@ -59,11 +59,8 @@ def calculate_daily_totals(dataframe):
     return daily_totals[['date', 'duration', 'rounded_duration', 'rounded_hours']]
 
 def calculate_totals(dataframe):
-    return dataframe[['duration', 'rounded_duration', 'rounded_hours']].sum()
-
-def __fill_na(dataframe, column_name):
-    length = int(dataframe[column_name].str.len().max())
-    dataframe[column_name] = dataframe[column_name].fillna('-' * length)
+    without_daily_totals = dataframe.dropna()
+    return without_daily_totals[['duration', 'rounded_duration', 'rounded_hours']].sum()
 
 def combine_with_daily_totals(dataframe, daily_totals):
     combined_df = pd.concat([dataframe, daily_totals])
@@ -71,8 +68,13 @@ def combine_with_daily_totals(dataframe, daily_totals):
         by=['date', 'client', 'project', 'task'],
         na_position='last')
 
-    __fill_na(combined_df, 'client')
-    __fill_na(combined_df, 'project')
-    __fill_na(combined_df, 'task')
-
     return combined_df
+
+def __fill_na(dataframe, column_name):
+    length = int(dataframe[column_name].str.len().max())
+    dataframe[column_name] = dataframe[column_name].fillna('-' * length)
+
+def fill_na(dataframe):
+    __fill_na(dataframe, 'client')
+    __fill_na(dataframe, 'project')
+    __fill_na(dataframe, 'task')

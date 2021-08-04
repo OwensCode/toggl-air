@@ -9,6 +9,7 @@ import requests
 
 from dotenv import load_dotenv
 from texttable import Texttable
+import pandas as pd
 
 import dataframe as df
 
@@ -69,6 +70,8 @@ def duration_to_str(duration):
     return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
 
 def create_report(dataframe, totals):
+    df.fill_na(dataframe)
+
     table = Texttable(max_width=0)
     table.set_deco(Texttable.HEADER | Texttable.BORDER | Texttable.VLINES)
     table.set_precision(2)
@@ -102,19 +105,27 @@ def run_detail_report(config, report_date):
     if len(data):
         dataframe = df.create_dataframe(data, config)
         daily_totals = df.calculate_daily_totals(dataframe)
-        totals = df.calculate_totals(dataframe)
         dataframe = df.combine_with_daily_totals(dataframe, daily_totals)
-        print(create_report(dataframe, totals))
+        return dataframe
 
 def main():
     load_dotenv(verbose=False)
     args = run_args()
     config = Config(args.config)
 
+    dataframe = None
+
     report_date = args.start
     while report_date <= args.end:
-        run_detail_report(config, report_date)
+        dayframe = run_detail_report(config, report_date)
+        if dataframe is not None:
+            dataframe = pd.concat([dataframe, dayframe]);
+        else:
+            dataframe = dayframe
         report_date = report_date + ONE_DAY
+
+    totals = df.calculate_totals(dataframe)
+    print(create_report(dataframe, totals))
 
 if __name__ == '__main__':
     main()
