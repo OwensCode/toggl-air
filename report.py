@@ -16,7 +16,7 @@ import dataframe as df
 from config import Config
 from errors import RequestError
 
-REPORT_DETAIL_URL = 'https://toggl.com/reports/api/v2/details'
+REPORT_DETAIL_URL = 'https://api.track.toggl.com/reports/api/v2/details'
 
 EMPTY_TABLE_ROW = [''] * 4 + ['--------', '--------', '-----']
 
