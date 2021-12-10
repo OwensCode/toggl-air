@@ -29,15 +29,15 @@ def valid_date(date_str):
         msg = f'Not a valid date: "{date_str}". Must be in format yyyy-mm-dd.'
         raise argparse.ArgumentTypeError(msg)
 
-def previous_monday(end_date):
+def previous_saturday(end_date):
     prev_date = end_date - ONE_DAY
-    while prev_date.isoweekday() != 1:
+    while prev_date.isoweekday() != 6:
         prev_date = prev_date - ONE_DAY
     return prev_date
 
 def run_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--start', help='start date, default is most recent Monday', type=valid_date)
+    parser.add_argument('-s', '--start', help='start date, default is most recent Saturday', type=valid_date)
     parser.add_argument('-e', '--end', help='end date, default is today', type=valid_date)
     parser.add_argument('config', help='configuration file in JSON format')
     args = parser.parse_args()
@@ -46,7 +46,7 @@ def run_args():
         args.end = date.today()
 
     if args.start is None:
-        args.start = previous_monday(args.end)
+        args.start = previous_saturday(args.end)
 
     assert args.start <= args.end, 'End date cannot be before start date'
 
