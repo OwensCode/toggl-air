@@ -2,17 +2,13 @@
   "round_to_minutes" : 15,
   "client_map" : {
     "RN-.*" : "RN",
-    "SS-.*" : "SS",
+    "SS-Platform": "SS-Shake",
+    "SS-Marketing Automation" : "SS-Mkt Auto",
     "HS2-.*" : "Bounteous",
-    "B8-.*" : "Bounteous"
+    "B8-Personal Development": "B8-Pers Dev",
+    "B8-Team Development": "B8-Team Dev"
   },
   "project_map" : {
-    "Administration" : "Administration",
-    "Holiday" : "Holiday",
-    "Mentoring" : "Mentoring",
-    "Competency Development" : "Competency Development",
-    "Training" : "Training",
-    "Vacation" : "Leave/Absence"
   },
   "task_map" : {
   }

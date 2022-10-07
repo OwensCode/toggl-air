@@ -10,7 +10,7 @@ import pandas as pd
 from duration_rounder import DurationRounder
 from calc import calc_rounded_hours
 
-pd.set_option('max_rows', 999)
+pd.set_option('display.max_rows', 999)
 pd.set_option('max_colwidth', 80)
 
 def create_dataframe(data, config):
