@@ -3,9 +3,9 @@
 from datetime import timedelta
 
 class DurationRounder():
-    def __init__(self, round_to_minutes):
+    def __init__(self, round_to_minutes, rounding_boundary):
         self.round_to = timedelta(minutes=round_to_minutes)
-        self.rounding_boundary = self.round_to / 2.3
+        self.rounding_boundary = timedelta(minutes=rounding_boundary)
 
     def round(self, duration):
         quotient, remainder = divmod(duration, self.round_to)

@@ -1,0 +1,15 @@
+{
+  "round_to_minutes" : 15,
+  "rounding_boundary": 6.5,
+  "client_map" : {
+    "RN-.*" : "RN",
+    "HS2-.*" : "Bounteous",
+    "B8-Admin": "Admin"
+  },
+  "project_map" : {
+    "Tech": "Technology"
+  },
+  "task_map" : {
+    "Onboarding": "Project Ramp-up"
+  }
+}

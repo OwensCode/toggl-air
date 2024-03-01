@@ -12,6 +12,10 @@ class Config:
     def round_to_minutes(self):
         return self.config.get('round_to_minutes', 5)
 
+    def rounding_boundary(self):
+        round_mins = self.round_to_minutes()
+        return self.config.get('rounding_boundary', round_mins / 2.3)
+
     def client_map(self):
         return self.config.get('client_map', {})
 

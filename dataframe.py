@@ -39,7 +39,7 @@ def __map_descriptive_cols(dataframe, config):
     return dataframe
 
 def __perform_rounding(dataframe, config):
-    duration_rounder = DurationRounder(config.round_to_minutes())
+    duration_rounder = DurationRounder(config.round_to_minutes(), config.rounding_boundary())
     dataframe['rounded_duration'] = dataframe['duration'].apply(duration_rounder.round)
     dataframe['rounded_hours'] = dataframe['rounded_duration'].apply(calc_rounded_hours)
     return dataframe
