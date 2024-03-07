@@ -3,6 +3,7 @@
 import re
 import json
 
+from io import StringIO
 from datetime import timedelta
 
 import pandas as pd
@@ -15,7 +16,8 @@ pd.set_option('max_colwidth', 80)
 
 def create_dataframe(data, config):
     json_data = json.dumps(data)
-    dataframe = pd.read_json(json_data, convert_dates=['start', 'end', 'updated'])
+    json_file = StringIO(json_data)
+    dataframe = pd.read_json(json_file, convert_dates=['start', 'end', 'updated'])
 
     dataframe['start_local'] = dataframe['start'].dt.tz_localize(None)
     dataframe['date'] = dataframe['start_local'].dt.to_period('D')
