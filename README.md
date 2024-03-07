@@ -12,6 +12,11 @@ optional arguments:
   -h, --help  show this help message and exit
 ```
 
+## Toggl Credentials
+
+See `.env-example` for Toggl configuration settings. Copy the file to `.env` and edit it to update
+the values with your personal settings, as per the comments in the file.
+
 ## Configuration
 
 Round and group values with different settings, in case you need to report time into different
