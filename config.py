@@ -2,8 +2,11 @@
 
 import sys
 import json
+import collections
 
 from json import JSONDecodeError
+
+Filters = collections.namedtuple('Filters', ['client'], defaults=[None])
 
 class Config:
     def __init__(self, config_file):

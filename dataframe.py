@@ -11,10 +11,12 @@ import pandas as pd
 from duration_rounder import DurationRounder
 from calc import calc_rounded_hours
 
+from config import Config, Filters
+
 pd.set_option('display.max_rows', 999)
 pd.set_option('max_colwidth', 80)
 
-def create_dataframe(data, config):
+def create_dataframe(data: list[dict], config: Config, filters: Filters) -> pd.DataFrame:
     json_data = json.dumps(data)
     json_file = StringIO(json_data)
     dataframe = pd.read_json(json_file, convert_dates=['start', 'end', 'updated'])
@@ -24,6 +26,10 @@ def create_dataframe(data, config):
     dataframe['duration'] = dataframe['dur'].apply(lambda x: timedelta(milliseconds=x))
 
     dataframe = dataframe[['date', 'client', 'project', 'description', 'duration']]
+
+    if filters.client is not None:
+        dataframe = dataframe[dataframe['client'] == filters.client]
+
     dataframe = dataframe.rename(columns={'description': 'task'})
 
     dataframe = dataframe.groupby(['date', 'client', 'project', 'task'], as_index=False).sum()

@@ -13,7 +13,7 @@ import pandas as pd
 
 import dataframe as df
 
-from config import Config
+from config import Config, Filters
 from errors import RequestError
 
 REPORT_DETAIL_URL = 'https://api.track.toggl.com/reports/api/v2/details'
@@ -39,6 +39,7 @@ def run_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--start', help='start date, default is most recent Saturday', type=valid_date)
     parser.add_argument('-e', '--end', help='end date, default is today', type=valid_date)
+    parser.add_argument('--client', help='only include time for this client')
     parser.add_argument('config', help='configuration file in JSON format')
     args = parser.parse_args()
 
@@ -94,7 +95,7 @@ def create_report(dataframe, totals):
 
     return table.draw()
 
-def run_detail_report(config, report_date):
+def run_detail_report(config, report_date, filters: Filters):
     request_params = get_request_params(report_date, report_date)
     response = requests.get(REPORT_DETAIL_URL, params=request_params, auth=get_auth())
 
@@ -103,7 +104,7 @@ def run_detail_report(config, report_date):
 
     data = response.json()['data']
     if len(data):
-        dataframe = df.create_dataframe(data, config)
+        dataframe = df.create_dataframe(data, config, filters)
         daily_totals = df.calculate_daily_totals(dataframe)
         dataframe = df.combine_with_daily_totals(dataframe, daily_totals)
         return dataframe
@@ -112,20 +113,26 @@ def main():
     load_dotenv(verbose=False)
     args = run_args()
     config = Config(args.config)
+    filters = Filters(client=args.client)
 
     dataframe = None
 
     report_date = args.start
     while report_date <= args.end:
-        dayframe = run_detail_report(config, report_date)
+        dayframe = run_detail_report(config, report_date, filters)
         if dataframe is not None:
             dataframe = pd.concat([dataframe, dayframe]);
         else:
             dataframe = dayframe
         report_date = report_date + ONE_DAY
 
-    totals = df.calculate_totals(dataframe)
-    print(create_report(dataframe, totals))
+    if dataframe is None:
+        print('No data found for this date range')
+    elif dataframe.empty:
+        print('No data found. Check your filtering criteria, for example client name.')
+    else:
+        totals = df.calculate_totals(dataframe)
+        print(create_report(dataframe, totals))
 
 if __name__ == '__main__':
     main()

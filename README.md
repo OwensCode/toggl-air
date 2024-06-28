@@ -3,13 +3,17 @@
 Export Toggl reports into a text format that can be copied and pasted into a company timesheet.
 
 ```
-usage: report.py [-h] config
+usage: report.py [-h] [-s START] [-e END] [--client CLIENT] config
 
 positional arguments:
-  config      configuration file in JSON format
+  config                configuration file in JSON format
 
-optional arguments:
-  -h, --help  show this help message and exit
+options:
+  -h, --help            show this help message and exit
+  -s START, --start START
+                        start date, default is most recent Saturday
+  -e END, --end END     end date, default is today
+  --client CLIENT       only include time for this client
 ```
 
 ## Toggl Credentials
